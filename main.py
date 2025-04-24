@@ -9,7 +9,7 @@ from io import BytesIO
 
 def telecharger_video():
     # Initialisation de la commande pour télécharger la vidéo
-    commande = ["yt-dlp", entry_url.get()]
+    commande = ["yt-dlp", "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4", entry_url.get()]
     # Ajouter le chemin de ffmpeg
     commande += ["--ffmpeg-location", r"C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin"]
     lancer_telechargement(commande, "Vidéo téléchargée !")
