@@ -1,0 +1,45 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Téléchargeur YouTube</title>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding-top: 50px;
+        }
+        input, select, button {
+            margin: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+        }
+        input, select {
+            width: 60%;
+        }
+        button {
+            background-color: #0078d4;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #005fa3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Téléchargeur YouTube</h1>
+    <form action="/download" method="post">
+        <input type="text" name="url" placeholder="Colle l'URL ici" required><br>
+        <select name="format">
+            <option value="mp4">Vidéo (.mp4)</option>
+            <option value="mp3">Audio (.mp3)</option>
+        </select><br>
+        <button type="submit">Télécharger</button>
+    </form>
+</body>
+</html>
