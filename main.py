@@ -1,155 +1,144 @@
 import customtkinter as ctk
-import tkinter.messagebox as messagebox
+import tkinter.filedialog as filedialog
 import subprocess
 import threading
 import requests
-import json
-import re
 from PIL import Image
 from io import BytesIO
-from customtkinter import CTkImage
+import json
+import os
 
-ctk.set_appearance_mode("dark")
+ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("dark-blue")
 
+class App(ctk.CTk):
+    def __init__(self):
+        super().__init__()
 
-def clean_title(title):
-    cleaned = re.sub(r"\s*\(.*?\)", "", title)
-    cleaned = re.sub(r"\s*\[.*?\]", "", cleaned)
-    return cleaned.strip()
+        self.title("Téléchargeur YouTube ✨")
+        self.geometry("600x700")
+        self.resizable(False, False)
 
+        self.dossier_telechargement = os.getcwd()
 
-def telecharger_video():
-    url = entry_url.get()
-    if not url:
-        messagebox.showwarning("Attention", "Veuillez entrer une URL.")
-        return
+        self.label_url = ctk.CTkLabel(self, text="Entrez une ou plusieurs URLs (une par ligne) :")
+        self.label_url.pack(pady=(10, 0))
 
-    try:
-        result = subprocess.run(["yt-dlp", "-j", url], capture_output=True, text=True, check=True)
-        video_info = json.loads(result.stdout)
-        raw_title = video_info.get("title", "video")
-        clean_file_title = clean_title(raw_title)
-        output_path = f"{clean_file_title}.%(ext)s"
+        self.text_urls = ctk.CTkTextbox(self, height=100)
+        self.text_urls.pack(padx=20, pady=(5, 10), fill="x")
 
-        commande = [
-            "yt-dlp",
-            "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4",
-            "--output", output_path,
-            "--ffmpeg-location", r"C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin",
-            url
-        ]
-        lancer_telechargement(commande, f"Vidéo téléchargée : {clean_file_title}.mp4")
+        self.btn_previsualiser = ctk.CTkButton(self, text="Prévisualiser", command=self.previsualiser)
+        self.btn_previsualiser.pack(pady=(0, 10))
 
-    except subprocess.CalledProcessError:
-        messagebox.showerror("Erreur", "Impossible de récupérer les infos de la vidéo.")
+        self.label_titre = ctk.CTkLabel(self, text="")
+        self.label_titre.pack()
 
+        self.image_preview = ctk.CTkLabel(self, text="")
+        self.image_preview.pack(pady=5)
 
-def telecharger_audio():
-    url = entry_url.get()
-    if not url:
-        messagebox.showwarning("Attention", "Veuillez entrer une URL.")
-        return
+        self.label_options = ctk.CTkLabel(self, text="Options de téléchargement :")
+        self.label_options.pack(pady=(10, 0))
 
-    try:
-        result = subprocess.run(["yt-dlp", "-j", url], capture_output=True, text=True, check=True)
-        video_info = json.loads(result.stdout)
-        raw_title = video_info.get("title", "audio")
-        clean_file_title = clean_title(raw_title)
-        output_path = f"{clean_file_title}.%(ext)s"
+        self.choix_qualite = ctk.CTkComboBox(self, values=["best", "1080p", "720p", "480p", "audio"], width=120)
+        self.choix_qualite.set("best")
+        self.choix_qualite.pack(pady=5)
 
-        commande = [
-            "yt-dlp",
-            "-x",
-            "--audio-format", "mp3",
-            "--output", output_path,
-            "--ffmpeg-location", r"C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin",
-            url
-        ]
-        lancer_telechargement(commande, f"Audio téléchargé : {clean_file_title}.mp3")
+        self.format_audio = ctk.CTkComboBox(self, values=["mp3", "aac", "ogg", "wav", "opus"], width=120)
+        self.format_audio.set("mp3")
+        self.format_audio.pack(pady=5)
 
-    except subprocess.CalledProcessError:
-        messagebox.showerror("Erreur", "Impossible de récupérer les infos de la vidéo.")
+        self.btn_dossier = ctk.CTkButton(self, text="📂 Choisir dossier de téléchargement", command=self.choisir_dossier)
+        self.btn_dossier.pack(pady=5)
 
+        self.btn_video = ctk.CTkButton(self, text="Télécharger Vidéo", command=self.telecharger_video)
+        self.btn_video.pack(pady=5)
 
-def obtenir_previsualisation():
-    url = entry_url.get()
-    if not url:
-        messagebox.showwarning("Attention", "Veuillez entrer une URL.")
-        return
+        self.btn_audio = ctk.CTkButton(self, text="Télécharger Audio", command=self.telecharger_audio)
+        self.btn_audio.pack(pady=5)
 
-    try:
-        result = subprocess.run(["yt-dlp", "-j", url], capture_output=True, text=True, check=True)
-        video_info = json.loads(result.stdout)
-        title = video_info.get("title", "Titre non disponible")
-        thumbnail_url = video_info.get("thumbnail", "")
+        self.progress_bar = ctk.CTkProgressBar(self)
+        self.progress_bar.set(0)
+        self.progress_bar.pack(pady=10, fill="x", padx=20)
 
-        label_titre.configure(text=f"Titre : {title}")
+        self.logs = ctk.CTkTextbox(self, height=100)
+        self.logs.pack(padx=20, pady=(5, 10), fill="x")
 
-        if thumbnail_url:
-            response = requests.get(thumbnail_url)
-            img_data = response.content
-            img = Image.open(BytesIO(img_data))
-            img.thumbnail((300, 200))
-            img_ctk = CTkImage(light_image=img, size=(300, 200))
-            label_image.configure(image=img_ctk)
-            label_image.image = img_ctk
-        else:
-            label_image.configure(image="")
-            label_titre.configure(text="Miniature non disponible.")
+        self.switch_theme = ctk.CTkSwitch(self, text="🌙 Mode Sombre", command=self.toggle_theme)
+        self.switch_theme.select()
+        self.switch_theme.pack(pady=5)
 
-    except subprocess.CalledProcessError:
-        messagebox.showerror("Erreur", "Erreur lors de la récupération des informations de la vidéo.")
+    def toggle_theme(self):
+        theme = "Dark" if self.switch_theme.get() else "Light"
+        ctk.set_appearance_mode(theme)
 
+    def choisir_dossier(self):
+        dossier = filedialog.askdirectory()
+        if dossier:
+            self.dossier_telechargement = dossier
 
-def lancer_telechargement(commande, message_succes):
-    def telechargement():
-        animer_label(True)
+    def afficher_logs(self, texte):
+        self.logs.insert("end", texte + "\n")
+        self.logs.see("end")
+
+    def previsualiser(self):
+        url = self.text_urls.get("1.0", "end").strip().splitlines()[0]
+        if not url:
+            self.afficher_logs("Aucune URL valide.")
+            return
         try:
-            subprocess.run(commande, check=True)
-            messagebox.showinfo("Succès", message_succes)
-        except subprocess.CalledProcessError:
-            messagebox.showerror("Erreur", "Le téléchargement a échoué.")
-        finally:
-            animer_label(False)
+            result = subprocess.run(["yt-dlp", "-j", url], capture_output=True, text=True, check=True)
+            info = json.loads(result.stdout)
+            titre = info.get("title", "Titre non trouvé")
+            image_url = info.get("thumbnail", None)
+            self.label_titre.configure(text=f"Titre : {titre}")
 
-    threading.Thread(target=telechargement).start()
+            if image_url:
+                response = requests.get(image_url)
+                img = Image.open(BytesIO(response.content)).resize((160, 90))
+                ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=(160, 90))
+                self.image_preview.configure(image=ctk_img, text="")
+        except Exception as e:
+            self.afficher_logs(f"Erreur prévisualisation : {e}")
+
+    def nettoyer_nom(self, titre):
+        import re
+        return re.sub(r"\s*(\(.*?\)|\[.*?\])", "", titre).strip()
+
+    def telecharger_video(self):
+        urls = self.text_urls.get("1.0", "end").strip().splitlines()
+        qualite = self.choix_qualite.get()
+        self.telecharger(urls, mode="video", qualite=qualite)
+
+    def telecharger_audio(self):
+        urls = self.text_urls.get("1.0", "end").strip().splitlines()
+        format_audio = self.format_audio.get()
+        self.telecharger(urls, mode="audio", format_audio=format_audio)
+
+    def telecharger(self, urls, mode, qualite="best", format_audio="mp3"):
+        def thread_func():
+            self.progress_bar.set(0.1)
+            for url in urls:
+                try:
+                    commande = ["yt-dlp", url, "--ffmpeg-location", r"C:\\ProgramData\\chocolatey\\lib\\ffmpeg\\tools\\ffmpeg\\bin"]
+                    if mode == "video":
+                        if qualite != "best":
+                            commande += ["-f", f"bestvideo[height<={qualite}]+bestaudio"]
+                    elif mode == "audio":
+                        commande += ["-x", "--audio-format", format_audio]
+
+                    commande += ["-P", self.dossier_telechargement, "--restrict-filenames"]
+                    commande += ["--output", f"%(title).80s.%(ext)s"]
+
+                    self.afficher_logs(f"Téléchargement : {url}")
+                    subprocess.run(commande, check=True)
+                    self.afficher_logs("✔️ Terminé")
+                except subprocess.CalledProcessError as e:
+                    self.afficher_logs(f"❌ Erreur : {e}")
+            self.progress_bar.set(1.0)
+
+        threading.Thread(target=thread_func, daemon=True).start()
 
 
-def animer_label(en_cours):
-    if en_cours:
-        label_animation.configure(text="⏳ Téléchargement en cours...")
-    else:
-        label_animation.configure(text="")
-
-
-# Interface
-fenetre = ctk.CTk()
-fenetre.title("YouTube Downloader")
-fenetre.geometry("500x600")
-
-label = ctk.CTkLabel(fenetre, text="URL de la vidéo YouTube :", font=("Arial", 14))
-label.pack(pady=10)
-
-entry_url = ctk.CTkEntry(fenetre, width=400, height=35)
-entry_url.pack(pady=5)
-
-btn_previsualiser = ctk.CTkButton(fenetre, text="Prévisualiser", corner_radius=20, command=obtenir_previsualisation)
-btn_previsualiser.pack(pady=10)
-
-label_titre = ctk.CTkLabel(fenetre, text="", font=("Arial", 13, "bold"))
-label_titre.pack(pady=10)
-
-label_image = ctk.CTkLabel(fenetre, text="")
-label_image.pack(pady=5)
-
-btn_telecharger_video = ctk.CTkButton(fenetre, text="Télécharger Vidéo MP4", corner_radius=20, fg_color="#006699", command=telecharger_video)
-btn_telecharger_video.pack(pady=10)
-
-btn_telecharger_audio = ctk.CTkButton(fenetre, text="Télécharger Audio MP3", corner_radius=20, fg_color="#009966", command=telecharger_audio)
-btn_telecharger_audio.pack(pady=10)
-
-label_animation = ctk.CTkLabel(fenetre, text="", font=("Arial", 12, "italic"), text_color="#bbbbbb")
-label_animation.pack(pady=20)
-
-fenetre.mainloop()
+if __name__ == '__main__':
+    app = App()
+    app.mainloop()
