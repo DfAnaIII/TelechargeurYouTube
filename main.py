@@ -1,136 +1,131 @@
-import tkinter as tk
-from tkinter import messagebox
-import subprocess
-import threading
-import requests
+import customtkinter as ctk
+import subprocess, threading, requests, json
 from PIL import Image, ImageTk
 from io import BytesIO
-import json
+import re
 
+# Initialisation Dark Mode
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("dark-blue")
+
+def clean_title(title):
+    # Supprimer (xxx) et [xxx] du titre
+    cleaned = re.sub(r"\s*\(.*?\)", "", title)
+    cleaned = re.sub(r"\s*\[.*?\]", "", cleaned)
+    return cleaned.strip()
 
 def telecharger_video():
-    # Initialisation de la commande pour télécharger la vidéo
-    commande = ["yt-dlp", "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4", entry_url.get()]
-    # Ajouter le chemin de ffmpeg
-    commande += ["--ffmpeg-location", r"C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin"]
-    lancer_telechargement(commande, "Vidéo téléchargée !")
+    url = entry_url.get()
 
+    # On récupère d'abord les infos de la vidéo pour extraire un titre propre
+    try:
+        result = subprocess.run(["yt-dlp", "-j", url], capture_output=True, text=True, check=True)
+        video_info = json.loads(result.stdout)
+        raw_title = video_info.get("title", "video")
+        clean_file_title = clean_title(raw_title)
+
+        # On définit un nom de fichier propre
+        output_path = f"{clean_file_title}.%(ext)s"
+
+        commande = [
+            "yt-dlp",
+            "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4",
+            "--output", output_path,
+            "--ffmpeg-location", r"C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin",
+            url
+        ]
+        lancer_telechargement(commande, f"Vidéo téléchargée : {clean_file_title}.mp4")
+
+    except subprocess.CalledProcessError:
+        messagebox.showerror("Erreur", "Impossible de récupérer les infos de la vidéo.")
 
 def telecharger_audio():
-    # Initialisation de la commande pour télécharger l'audio
-    commande = [
-        "yt-dlp",
-        "-x",
-        "--audio-format", "mp3",
-        entry_url.get()
-    ]
-    # Ajouter le chemin de ffmpeg
-    commande += ["--ffmpeg-location", r"C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin"]
-    lancer_telechargement(commande, "Audio téléchargé en MP3 !")
+    url = entry_url.get()
+
+    try:
+        # On récupère les infos de la vidéo
+        result = subprocess.run(["yt-dlp", "-j", url], capture_output=True, text=True, check=True)
+        video_info = json.loads(result.stdout)
+        raw_title = video_info.get("title", "audio")
+        clean_file_title = clean_title(raw_title)
+
+        output_path = f"{clean_file_title}.%(ext)s"
+
+        commande = [
+            "yt-dlp",
+            "-x",
+            "--audio-format", "mp3",
+            "--output", output_path,
+            "--ffmpeg-location", r"C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin",
+            url
+        ]
+
+        lancer_telechargement(commande, f"Audio téléchargé : {clean_file_title}.mp3")
+
+    except subprocess.CalledProcessError:
+        messagebox.showerror("Erreur", "Impossible de récupérer les infos de la vidéo.")
 
 
 def obtenir_previsualisation():
     url = entry_url.get()
     if not url:
-        messagebox.showwarning("Attention", "Veuillez entrer une URL.")
         return
 
     try:
-        # Utilisation de yt-dlp pour obtenir les métadonnées
-        result = subprocess.run(
-            ["yt-dlp", "-j", url],
-            capture_output=True, text=True, check=True
-        )
-        data = result.stdout
+        result = subprocess.run(["yt-dlp", "-j", url], capture_output=True, text=True, check=True)
+        video_info = json.loads(result.stdout)
+        titre = video_info.get('title', 'Titre non disponible')
+        miniature_url = video_info.get('thumbnail', '')
 
-        # Extraction de la miniature et du titre
-        import json
-        video_info = json.loads(data)
-        title = video_info.get('title', 'Titre non disponible')
-        thumbnail_url = video_info.get('thumbnail', '')
+        label_titre.configure(text=f"Titre : {titre}")
 
-        # Affichage du titre
-        label_titre.config(text=f"Titre : {title}")
-
-        # Télécharger et afficher la miniature
-        if thumbnail_url:
-            response = requests.get(thumbnail_url)
-            img_data = response.content
+        if miniature_url:
+            img_data = requests.get(miniature_url).content
             img = Image.open(BytesIO(img_data))
-            img.thumbnail((150, 150))  # Redimensionner l'image
+            img.thumbnail((180, 180))
             img_tk = ImageTk.PhotoImage(img)
-            label_image.config(image=img_tk)
-            label_image.image = img_tk  # Garder la référence pour ne pas perdre l'image
+            label_image.configure(image=img_tk)
+            label_image.image = img_tk
         else:
-            label_image.config(image="")
-            label_titre.config(text="Miniature non disponible.")
+            label_image.configure(image="")
 
-    except subprocess.CalledProcessError:
-        messagebox.showerror("Erreur", "Erreur lors de la récupération des informations de la vidéo.")
-
+    except Exception as e:
+        print("Erreur :", e)
 
 def lancer_telechargement(commande, message_succes):
-    url = entry_url.get()
-    if not url:
-        messagebox.showwarning("Attention", "Veuillez entrer une URL.")
-        return
-
-    def telechargement():
-        animer_label(True)
+    def run():
+        label_animation.configure(text="⏳ Téléchargement en cours...")
         try:
             subprocess.run(commande, check=True)
-            messagebox.showinfo("Succès", message_succes)
-        except subprocess.CalledProcessError:
-            messagebox.showerror("Erreur", "Le téléchargement a échoué.")
-        finally:
-            animer_label(False)
+            label_animation.configure(text="✅ " + message_succes)
+        except:
+            label_animation.configure(text="❌ Échec du téléchargement.")
+    threading.Thread(target=run).start()
 
-    threading.Thread(target=telechargement).start()
+# === Interface ===
+app = ctk.CTk()
+app.title("Téléchargeur YouTube yt-dlp")
+app.geometry("500x600")
 
+entry_url = ctk.CTkEntry(app, placeholder_text="URL de la vidéo YouTube", width=400)
+entry_url.pack(pady=15)
 
-# Animation : affichage / masquage du texte pendant le téléchargement
+btn_previsu = ctk.CTkButton(app, text="👁️ Prévisualiser", command=obtenir_previsualisation, corner_radius=20)
+btn_previsu.pack(pady=10)
 
-def animer_label(en_cours):
-    label_animation.config(text="⏳ Téléchargement en cours..." if en_cours else "")# === Interface graphique ===
-
-
-# === Interface graphique ===
-
-fenetre = tk.Tk()
-fenetre.title("🎬 Téléchargeur YouTube - yt-dlp")
-fenetre.geometry("500x400")
-fenetre.configure(bg="#f4f4f4")
-
-style_btn = {"bg": "#4285F4", "fg": "white", "activebackground": "#3367D6", "relief": "raised", "bd": 2, "font": ("Helvetica", 10, "bold")}
-
-frame_url = tk.Frame(fenetre, bg="#f4f4f4")
-frame_url.pack(pady=10)
-
-label = tk.Label(frame_url, text="🎯 URL YouTube :", bg="#f4f4f4", font=("Helvetica", 11))
-label.pack()
-
-entry_url = tk.Entry(frame_url, width=50, bd=2, relief="solid", font=("Helvetica", 10))
-entry_url.pack(pady=5)
-
-btn_previsualiser = tk.Button(fenetre, text="👁️ Prévisualiser", command=obtenir_previsualisation, **style_btn)
-btn_previsualiser.pack(pady=8)
-
-label_titre = tk.Label(fenetre, text="", bg="#f4f4f4", font=("Helvetica", 12, "bold"))
+label_titre = ctk.CTkLabel(app, text="", font=("Segoe UI", 14))
 label_titre.pack(pady=5)
 
-label_image = tk.Label(fenetre, bg="#f4f4f4")
+label_image = ctk.CTkLabel(app, text="")
 label_image.pack(pady=5)
 
-frame_btn = tk.Frame(fenetre, bg="#f4f4f4")
-frame_btn.pack(pady=10)
+btn_video = ctk.CTkButton(app, text="⬇️ Télécharger Vidéo", command=telecharger_video, corner_radius=20, width=200)
+btn_video.pack(pady=8)
 
-btn_telecharger_video = tk.Button(frame_btn, text="⬇️ Télécharger Vidéo", command=telecharger_video, width=20, **style_btn)
-btn_telecharger_video.grid(row=0, column=0, padx=10)
+btn_audio = ctk.CTkButton(app, text="🎧 Télécharger Audio", command=telecharger_audio, corner_radius=20, width=200)
+btn_audio.pack(pady=8)
 
-btn_telecharger_audio = tk.Button(frame_btn, text="🎧 Télécharger Audio", command=telecharger_audio, width=20, **style_btn)
-btn_telecharger_audio.grid(row=0, column=1, padx=10)
-
-label_animation = tk.Label(fenetre, text="", bg="#f4f4f4", fg="#333", font=("Arial", 10, "italic"))
+label_animation = ctk.CTkLabel(app, text="", font=("Segoe UI", 11, "italic"))
 label_animation.pack(pady=15)
 
-fenetre.mainloop()
+app.mainloop()
