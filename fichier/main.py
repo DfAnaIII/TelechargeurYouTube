@@ -8,6 +8,9 @@ from io import BytesIO
 import json
 import os
 
+# Pour convertire un .py en .exe
+#  auto-py-to-exe
+
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("dark-blue")
 
