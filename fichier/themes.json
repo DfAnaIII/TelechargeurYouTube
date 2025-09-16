@@ -3,18 +3,40 @@
     "bg_color": "#222E3C",
     "fg_color": "#3D4A5A",
     "button_color": "#22577A",
-    "text_color": "#FFFFFF"
+    "text_color": "#FFFFFF",
+    "border_color": "#1A2332",
+    "hover_color": "#294157"
   },
   "light": {
     "bg_color": "#F4F6F7",
     "fg_color": "#FFFFFF",
-    "button_color": "#2980B9",
-    "text_color": "#222E3C"
+    "button_color": "#9a9b9c",
+    "text_color": "#222E3C",
+    "border_color": "#C9D6E3",
+    "hover_color": "#B9DFFF"
   },
   "green": {
     "bg_color": "#1b3c2a",
     "fg_color": "#2e5339",
     "button_color": "#38a169",
-    "text_color": "#e2e8f0"
+    "text_color": "#e2e8f0",
+    "border_color": "#276749",
+    "hover_color": "#68d391"
+  },
+  "rose": {
+    "bg_color": "#FFF1F7",
+    "fg_color": "#FFD6E0",
+    "button_color": "#FFB7D5",
+    "text_color": "#C873A6",
+    "border_color": "#F7A8C7",
+    "hover_color": "#FFD1EA"
+  },
+  "violette": {
+    "bg_color": "#F3E8FF",
+    "fg_color": "#D6BCFA",
+    "button_color": "#8B5CF6",
+    "text_color": "#5B21B6",
+    "border_color": "#A78BFA",
+    "hover_color": "#D1C4E9"
   }
 }

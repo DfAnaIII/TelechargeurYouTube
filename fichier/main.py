@@ -70,7 +70,7 @@ class App(ctk.CTk):
 
         self.btn_theme = ctk.CTkButton(self, text="Changer de thème", command=self.changer_theme)
         self.btn_theme.pack(pady=5)
-        self.theme_list = ["dark-blue", "light", "green"]
+        self.theme_list = ["dark-blue", "light", "green","rose","violette"]
         self.current_theme_idx = 0
         self.btn_theme.configure(text=f"Thème : {self.theme_list[self.current_theme_idx]}")
 
@@ -91,19 +91,40 @@ class App(ctk.CTk):
     def apply_theme(self, theme):
         self.configure(fg_color=theme["bg_color"])
         self.label_url.configure(bg_color=theme["bg_color"], text_color=theme["text_color"])
-        self.text_urls.configure(bg_color=theme["fg_color"], text_color=theme["text_color"])
-        self.btn_previsualiser.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
         self.label_titre.configure(bg_color=theme["bg_color"], text_color=theme["text_color"])
-        self.image_preview.configure(bg_color=theme["bg_color"])
         self.label_options.configure(bg_color=theme["bg_color"], text_color=theme["text_color"])
-        self.choix_qualite.configure(bg_color=theme["fg_color"], text_color=theme["text_color"])
-        self.format_audio.configure(bg_color=theme["fg_color"], text_color=theme["text_color"])
+
+        self.text_urls.configure(fg_color=theme["fg_color"], text_color=theme["text_color"])
+        self.logs.configure(fg_color=theme["fg_color"], text_color=theme["text_color"])
+
+        self.btn_previsualiser.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
         self.btn_dossier.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
         self.btn_video.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
         self.btn_audio.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
-        self.progress_bar.configure(bg_color=theme["fg_color"])
-        self.logs.configure(bg_color=theme["fg_color"], text_color=theme["text_color"])
         self.btn_theme.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
+
+        self.choix_qualite.configure(
+            fg_color=theme["fg_color"],
+            bg_color=theme["bg_color"],
+            border_color=theme.get("border_color", theme["button_color"]),  # couleur du contour
+            text_color=theme["text_color"],
+            button_color=theme["button_color"]
+        )
+        self.format_audio.configure(
+            fg_color=theme["fg_color"],
+            bg_color=theme["bg_color"],
+            border_color=theme["border_color"],
+            text_color=theme["text_color"],
+            button_color=theme["button_color"]
+        )
+
+        self.progress_bar.configure(
+            fg_color=theme["button_color"],
+            bg_color=theme["fg_color"],
+            border_color=theme["border_color"]
+        )
+
+        self.image_preview.configure(bg_color=theme["bg_color"])
 
     def choisir_dossier(self):
         dossier = filedialog.askdirectory()
