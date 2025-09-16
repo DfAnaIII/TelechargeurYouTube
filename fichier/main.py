@@ -24,16 +24,42 @@ def load_last_theme():
         return "dark-blue"
 
 def load_theme(theme_name):
+    if not os.path.exists("themes.json"):
+        # Fichier absent : crée un thème par défaut
+        with open("themes.json", "w") as f:
+            json.dump({"dark-blue": {
+                "bg_color": "#222E3C",
+                "fg_color": "#3D4A5A",
+                "button_color": "#22577A",
+                "text_color": "#FFFFFF",
+                "border_color": "#1A2332",
+                "hover_color": "#294157"
+            }}, f, indent=2)
     with open("themes.json", "r") as f:
         themes = json.load(f)
     return themes.get(theme_name, themes["dark-blue"])
 
 def save_theme_to_file(theme_name, theme_dict):
+    # Corrigé : robustesse création/écrasement du fichier
+    if not os.path.exists("themes.json"):
+        with open("themes.json", "w") as f:
+            json.dump({theme_name: theme_dict}, f, indent=2)
+    else:
+        with open("themes.json", "r") as f:
+            try:
+                themes = json.load(f)
+            except Exception:
+                themes = {}
+        themes[theme_name] = theme_dict
+        with open("themes.json", "w") as f:
+            json.dump(themes, f, indent=2)
+
+def get_all_themes():
+    if not os.path.exists("themes.json"):
+        return ["dark-blue"]
     with open("themes.json", "r") as f:
         themes = json.load(f)
-    themes[theme_name] = theme_dict
-    with open("themes.json", "w") as f:
-        json.dump(themes, f, indent=2)
+    return list(themes.keys())
 
 class App(ctk.CTk):
     def __init__(self):
@@ -84,24 +110,26 @@ class App(ctk.CTk):
         self.progress_bar.set(0)
         self.progress_bar.pack(pady=10, fill="x", padx=20)
 
+        self.progress_label = ctk.CTkLabel(self, text="Progression : 0%")
+        self.progress_label.pack()
+
         self.logs = ctk.CTkTextbox(self, height=100)
         self.logs.pack(padx=20, pady=(5, 10), fill="x")
 
-        self.theme_list = ["dark-blue", "light", "green", "rose", "violette"]
-        self.current_theme_idx = 0
-        self.btn_theme = ctk.CTkButton(self, text=f"Thème : {self.theme_list[self.current_theme_idx]}", command=self.changer_theme)
-        self.btn_theme.pack(pady=5)
-
-        self.btn_theme_editor = ctk.CTkButton(self, text="Éditeur de thème", command=self.ouvrir_editeur_theme)
-        self.btn_theme_editor.pack(pady=5)
-
-        # Charger/sauver le dernier thème
+        self.theme_list = get_all_themes()
         self.current_theme = load_last_theme()
         if self.current_theme in self.theme_list:
             self.current_theme_idx = self.theme_list.index(self.current_theme)
         else:
             self.current_theme_idx = 0
             self.current_theme = self.theme_list[0]
+
+        self.btn_theme = ctk.CTkButton(self, text=f"Thème : {self.current_theme}", command=self.changer_theme)
+        self.btn_theme.pack(pady=5)
+
+        self.btn_theme_editor = ctk.CTkButton(self, text="Éditeur de thème", command=self.ouvrir_editeur_theme)
+        self.btn_theme_editor.pack(pady=5)
+
         self.apply_theme(load_theme(self.current_theme))
         self.btn_theme.configure(text=f"Thème : {self.current_theme}")
 
@@ -109,8 +137,8 @@ class App(ctk.CTk):
     def notif_popup(self, message, title="Notification"):
         top = ctk.CTkToplevel(self)
         top.title(title)
-        top.geometry("300x100")
-        label = ctk.CTkLabel(top, text=message, font=("Arial", 16))
+        top.geometry("340x120")
+        label = ctk.CTkLabel(top, text=message, font=("Arial", 15))
         label.pack(pady=20)
         btn = ctk.CTkButton(top, text="OK", command=top.destroy)
         btn.pack(pady=5)
@@ -131,17 +159,14 @@ class App(ctk.CTk):
         self.label_url.configure(bg_color=theme["bg_color"], text_color=theme["text_color"])
         self.label_titre.configure(bg_color=theme["bg_color"], text_color=theme["text_color"])
         self.label_options.configure(bg_color=theme["bg_color"], text_color=theme["text_color"])
-
         self.text_urls.configure(fg_color=theme["fg_color"], text_color=theme["text_color"])
         self.logs.configure(fg_color=theme["fg_color"], text_color=theme["text_color"])
-
         self.btn_previsualiser.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
         self.btn_dossier.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
         self.btn_video.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
         self.btn_audio.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
         self.btn_theme.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
         self.btn_theme_editor.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
-
         self.choix_qualite.configure(
             fg_color=theme["fg_color"],
             bg_color=theme["bg_color"],
@@ -161,7 +186,7 @@ class App(ctk.CTk):
             bg_color=theme["fg_color"],
             border_color=theme.get("border_color", theme["button_color"])
         )
-
+        self.progress_label.configure(bg_color=theme["bg_color"], text_color=theme["text_color"])
         self.image_preview.configure(bg_color=theme["bg_color"])
 
     def choisir_dossier(self):
@@ -210,10 +235,10 @@ class App(ctk.CTk):
         format_audio = self.format_audio.get()
         self.telecharger(urls, mode="audio", format_audio=format_audio)
 
-    # --- Progression détaillée ---
     def telecharger(self, urls, mode, qualite="best", format_audio="mp3"):
         def thread_func():
             self.progress_bar.set(0)
+            self.progress_label.configure(text="Progression : 0%")
             for url in urls:
                 try:
                     commande = ["yt-dlp", url, "--ffmpeg-location", r"C:\\ProgramData\\chocolatey\\lib\\ffmpeg\\tools\\ffmpeg\\bin"]
@@ -222,14 +247,10 @@ class App(ctk.CTk):
                             commande += ["-f", f"bestvideo[height<={qualite}]+bestaudio"]
                     elif mode == "audio":
                         commande += ["-x", "--audio-format", format_audio]
-
                     commande += ["-P", self.dossier_telechargement, "--restrict-filenames"]
                     commande += ["--output", f"%(title).80s.%(ext)s"]
                     commande += ["--no-playlist", "--progress"]
-
                     self.afficher_logs(f"Téléchargement : {url}")
-
-                    # Progression réelle en lisant stdout
                     process = subprocess.Popen(commande, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
                     total_percent = 0.0
                     taille_mo = 0.0
@@ -248,6 +269,7 @@ class App(ctk.CTk):
                                 if taille_str:
                                     taille_mo = float(taille_str[0].replace('MiB', '').replace(',', '.'))
                                 self.progress_bar.set(total_percent/100)
+                                self.progress_label.configure(text=f"Progression : {total_percent:.1f}%   Taille : {taille_mo:.2f} Mo")
                             except Exception:
                                 pass
                     process.wait()
@@ -261,10 +283,10 @@ class App(ctk.CTk):
                     self.afficher_logs(f"❌ Erreur : {e}")
                     self.notif_popup(f"Erreur : {e}", "Erreur")
             self.progress_bar.set(1.0)
+            self.progress_label.configure(text="Progression : 100%")
 
         threading.Thread(target=thread_func, daemon=True).start()
 
-    # --- Éditeur de thème graphique ---
     def ouvrir_editeur_theme(self):
         top = ctk.CTkToplevel(self)
         top.title("Éditeur de thème")
@@ -291,15 +313,17 @@ class App(ctk.CTk):
             self.apply_theme(theme)
 
         def save_theme():
-            theme_name = entries["theme_name"].get()
+            theme_name = entries["theme_name"].get().strip()
             if not theme_name:
                 self.notif_popup("Nom du thème manquant", "Erreur")
                 return
-            theme = {k: v.get() for k, v in entries.items() if k != "theme_name"}
+            theme = {k: v.get().strip() for k, v in entries.items() if k != "theme_name"}
             save_theme_to_file(theme_name, theme)
             self.notif_popup(f"Thème '{theme_name}' sauvegardé !", "Succès")
-            if theme_name not in self.theme_list:
-                self.theme_list.append(theme_name)
+            # Recharge la liste de thèmes depuis le fichier
+            self.theme_list = get_all_themes()
+            self.current_theme_idx = self.theme_list.index(theme_name)
+            self.change_theme(theme_name)
 
         btn_preview = ctk.CTkButton(top, text="Prévisualiser", command=preview_theme)
         btn_preview.pack(pady=5)
