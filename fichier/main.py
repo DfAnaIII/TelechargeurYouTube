@@ -113,9 +113,6 @@ class App(ctk.CTk):
         self.progress_bar.set(0)
         self.progress_bar.pack(pady=10, fill="x", padx=20)
 
-        self.progress_label = ctk.CTkLabel(self, text="Progression : 0%")
-        self.progress_label.pack()
-
         self.logs = ctk.CTkTextbox(self, height=100)
         self.logs.pack(padx=20, pady=(5, 10), fill="x")
 
@@ -189,7 +186,6 @@ class App(ctk.CTk):
             bg_color=theme["fg_color"],
             border_color=theme.get("border_color", theme["button_color"])
         )
-        self.progress_label.configure(bg_color=theme["bg_color"], text_color=theme["text_color"])
         self.image_preview.configure(bg_color=theme["bg_color"])
 
     def choisir_dossier(self):
@@ -241,7 +237,6 @@ class App(ctk.CTk):
     def telecharger(self, urls, mode, qualite="best", format_audio="mp3"):
         def thread_func():
             self.progress_bar.set(0)
-            self.progress_label.configure(text="Progression : 0%")
             for url in urls:
                 try:
                     commande = ["yt-dlp", url, "--ffmpeg-location", r"C:\\ProgramData\\chocolatey\\lib\\ffmpeg\\tools\\ffmpeg\\bin"]
@@ -272,7 +267,6 @@ class App(ctk.CTk):
                                 if taille_str:
                                     taille_mo = float(taille_str[0].replace('MiB', '').replace(',', '.'))
                                 self.progress_bar.set(total_percent/100)
-                                self.progress_label.configure(text=f"Progression : {total_percent:.1f}%   Taille : {taille_mo:.2f} Mo")
                             except Exception:
                                 pass
                     process.wait()
@@ -286,8 +280,6 @@ class App(ctk.CTk):
                     self.afficher_logs(f"❌ Erreur : {e}")
                     self.notif_popup(f"Erreur : {e}", "Erreur")
             self.progress_bar.set(1.0)
-            self.progress_label.configure(text="Progression : 100%")
-
         threading.Thread(target=thread_func, daemon=True).start()
 
     def ouvrir_editeur_theme(self):
