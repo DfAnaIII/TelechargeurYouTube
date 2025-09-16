@@ -11,6 +11,18 @@ import os
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("dark-blue")
 
+def save_last_theme(theme_name):
+    with open("last_theme.json", "w") as f:
+        json.dump({"last_theme": theme_name}, f)
+
+def load_last_theme():
+    try:
+        with open("last_theme.json", "r") as f:
+            data = json.load(f)
+            return data.get("last_theme", "dark-blue")
+    except Exception:
+        return "dark-blue"
+
 def load_theme(theme_name):
     with open("themes.json", "r") as f:
         themes = json.load(f)
@@ -23,9 +35,9 @@ class App(ctk.CTk):
         self.title("Téléchargeur YouTube ✨")
         self.geometry("1000x1750")
 
-
         self.dossier_telechargement = os.getcwd()
 
+        # Widgets d'abord !
         self.label_url = ctk.CTkLabel(self, text="Entrez une ou plusieurs URLs (une par ligne) :")
         self.label_url.pack(pady=(10, 0))
 
@@ -68,25 +80,31 @@ class App(ctk.CTk):
         self.logs = ctk.CTkTextbox(self, height=100)
         self.logs.pack(padx=20, pady=(5, 10), fill="x")
 
-        self.btn_theme = ctk.CTkButton(self, text="Changer de thème", command=self.changer_theme)
-        self.btn_theme.pack(pady=5)
-        self.theme_list = ["dark-blue", "light", "green","rose","violette"]
+        self.theme_list = ["dark-blue", "light", "green", "rose", "violette"]
         self.current_theme_idx = 0
-        self.btn_theme.configure(text=f"Thème : {self.theme_list[self.current_theme_idx]}")
+        self.btn_theme = ctk.CTkButton(self, text=f"Thème : {self.theme_list[self.current_theme_idx]}", command=self.changer_theme)
+        self.btn_theme.pack(pady=5)
 
-        # Appliquer le thème de base
-        self.apply_theme(load_theme("dark-blue"))
+        # Charger/sauver le dernier thème
+        self.current_theme = load_last_theme()
+        if self.current_theme in self.theme_list:
+            self.current_theme_idx = self.theme_list.index(self.current_theme)
+        else:
+            self.current_theme_idx = 0
+            self.current_theme = self.theme_list[0]
+        self.apply_theme(load_theme(self.current_theme))
+        self.btn_theme.configure(text=f"Thème : {self.current_theme}")
 
-    def toggle_theme(self):
-        theme_mode = "Dark" if self.switch_theme.get() else "Light"
-        ctk.set_appearance_mode(theme_mode)
+    def change_theme(self, new_theme):
+        self.current_theme = new_theme
+        self.apply_theme(load_theme(new_theme))
+        save_last_theme(new_theme)
+        self.btn_theme.configure(text=f"Thème : {new_theme}")
 
     def changer_theme(self):
         self.current_theme_idx = (self.current_theme_idx + 1) % len(self.theme_list)
         theme_name = self.theme_list[self.current_theme_idx]
-        theme = load_theme(theme_name)
-        self.apply_theme(theme)
-        self.btn_theme.configure(text=f"Thème : {theme_name}")
+        self.change_theme(theme_name)
 
     def apply_theme(self, theme):
         self.configure(fg_color=theme["bg_color"])
@@ -106,22 +124,21 @@ class App(ctk.CTk):
         self.choix_qualite.configure(
             fg_color=theme["fg_color"],
             bg_color=theme["bg_color"],
-            border_color=theme.get("border_color", theme["button_color"]),  # couleur du contour
+            border_color=theme.get("border_color", theme["button_color"]),
             text_color=theme["text_color"],
             button_color=theme["button_color"]
         )
         self.format_audio.configure(
             fg_color=theme["fg_color"],
             bg_color=theme["bg_color"],
-            border_color=theme["border_color"],
+            border_color=theme.get("border_color", theme["button_color"]),
             text_color=theme["text_color"],
             button_color=theme["button_color"]
         )
-
         self.progress_bar.configure(
             fg_color=theme["button_color"],
             bg_color=theme["fg_color"],
-            border_color=theme["border_color"]
+            border_color=theme.get("border_color", theme["button_color"])
         )
 
         self.image_preview.configure(bg_color=theme["bg_color"])
