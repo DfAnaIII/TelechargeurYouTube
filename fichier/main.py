@@ -8,19 +8,21 @@ from io import BytesIO
 import json
 import os
 
-# Pour convertire un .py en .exe
-#  auto-py-to-exe
-
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("dark-blue")
+
+def load_theme(theme_name):
+    with open("themes.json", "r") as f:
+        themes = json.load(f)
+    return themes.get(theme_name, themes["dark-blue"])
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
         self.title("Téléchargeur YouTube ✨")
-        self.geometry("600x700")
-        self.resizable(False, False)
+        self.geometry("1000x1750")
+
 
         self.dossier_telechargement = os.getcwd()
 
@@ -66,13 +68,37 @@ class App(ctk.CTk):
         self.logs = ctk.CTkTextbox(self, height=100)
         self.logs.pack(padx=20, pady=(5, 10), fill="x")
 
-        self.switch_theme = ctk.CTkSwitch(self, text="🌙 Mode Sombre", command=self.toggle_theme)
-        self.switch_theme.select()
-        self.switch_theme.pack(pady=5)
+        self.combo_theme = ctk.CTkComboBox(self, values=["dark-blue", "light", "green"], command=self.changer_theme)
+        self.combo_theme.set("dark-blue")
+        self.combo_theme.pack(pady=5)
+
+        # Appliquer le thème de base
+        self.apply_theme(load_theme("dark-blue"))
 
     def toggle_theme(self):
-        theme = "Dark" if self.switch_theme.get() else "Light"
-        ctk.set_appearance_mode(theme)
+        theme_mode = "Dark" if self.switch_theme.get() else "Light"
+        ctk.set_appearance_mode(theme_mode)
+
+    def changer_theme(self, theme_name):
+        theme = load_theme(theme_name)
+        self.apply_theme(theme)
+
+    def apply_theme(self, theme):
+        self.configure(bg_color=theme["bg_color"])
+        self.label_url.configure(bg_color=theme["bg_color"], text_color=theme["text_color"])
+        self.text_urls.configure(bg_color=theme["fg_color"], text_color=theme["text_color"])
+        self.btn_previsualiser.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
+        self.label_titre.configure(bg_color=theme["bg_color"], text_color=theme["text_color"])
+        self.image_preview.configure(bg_color=theme["bg_color"])
+        self.label_options.configure(bg_color=theme["bg_color"], text_color=theme["text_color"])
+        self.choix_qualite.configure(bg_color=theme["fg_color"], text_color=theme["text_color"])
+        self.format_audio.configure(bg_color=theme["fg_color"], text_color=theme["text_color"])
+        self.btn_dossier.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
+        self.btn_video.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
+        self.btn_audio.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
+        self.progress_bar.configure(bg_color=theme["fg_color"])
+        self.logs.configure(bg_color=theme["fg_color"], text_color=theme["text_color"])
+        self.combo_theme.configure(bg_color=theme["fg_color"], text_color=theme["text_color"])
 
     def choisir_dossier(self):
         dossier = filedialog.askdirectory()
@@ -140,7 +166,6 @@ class App(ctk.CTk):
             self.progress_bar.set(1.0)
 
         threading.Thread(target=thread_func, daemon=True).start()
-
 
 if __name__ == '__main__':
     app = App()

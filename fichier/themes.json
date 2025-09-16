@@ -1,0 +1,20 @@
+{
+  "dark-blue": {
+    "bg_color": "#222E3C",
+    "fg_color": "#3D4A5A",
+    "button_color": "#22577A",
+    "text_color": "#FFFFFF"
+  },
+  "light": {
+    "bg_color": "#F4F6F7",
+    "fg_color": "#FFFFFF",
+    "button_color": "#2980B9",
+    "text_color": "#222E3C"
+  },
+  "green": {
+    "bg_color": "#1b3c2a",
+    "fg_color": "#2e5339",
+    "button_color": "#38a169",
+    "text_color": "#e2e8f0"
+  }
+}
