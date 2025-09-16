@@ -28,6 +28,13 @@ def load_theme(theme_name):
         themes = json.load(f)
     return themes.get(theme_name, themes["dark-blue"])
 
+def save_theme_to_file(theme_name, theme_dict):
+    with open("themes.json", "r") as f:
+        themes = json.load(f)
+    themes[theme_name] = theme_dict
+    with open("themes.json", "w") as f:
+        json.dump(themes, f, indent=2)
+
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -37,7 +44,7 @@ class App(ctk.CTk):
 
         self.dossier_telechargement = os.getcwd()
 
-        # Widgets d'abord !
+        # Widgets principaux
         self.label_url = ctk.CTkLabel(self, text="Entrez une ou plusieurs URLs (une par ligne) :")
         self.label_url.pack(pady=(10, 0))
 
@@ -85,6 +92,9 @@ class App(ctk.CTk):
         self.btn_theme = ctk.CTkButton(self, text=f"Thème : {self.theme_list[self.current_theme_idx]}", command=self.changer_theme)
         self.btn_theme.pack(pady=5)
 
+        self.btn_theme_editor = ctk.CTkButton(self, text="Éditeur de thème", command=self.ouvrir_editeur_theme)
+        self.btn_theme_editor.pack(pady=5)
+
         # Charger/sauver le dernier thème
         self.current_theme = load_last_theme()
         if self.current_theme in self.theme_list:
@@ -94,6 +104,16 @@ class App(ctk.CTk):
             self.current_theme = self.theme_list[0]
         self.apply_theme(load_theme(self.current_theme))
         self.btn_theme.configure(text=f"Thème : {self.current_theme}")
+
+    # --- Notifications pop-up ---
+    def notif_popup(self, message, title="Notification"):
+        top = ctk.CTkToplevel(self)
+        top.title(title)
+        top.geometry("300x100")
+        label = ctk.CTkLabel(top, text=message, font=("Arial", 16))
+        label.pack(pady=20)
+        btn = ctk.CTkButton(top, text="OK", command=top.destroy)
+        btn.pack(pady=5)
 
     def change_theme(self, new_theme):
         self.current_theme = new_theme
@@ -120,6 +140,7 @@ class App(ctk.CTk):
         self.btn_video.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
         self.btn_audio.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
         self.btn_theme.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
+        self.btn_theme_editor.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
 
         self.choix_qualite.configure(
             fg_color=theme["fg_color"],
@@ -156,6 +177,7 @@ class App(ctk.CTk):
         url = self.text_urls.get("1.0", "end").strip().splitlines()[0]
         if not url:
             self.afficher_logs("Aucune URL valide.")
+            self.notif_popup("Aucune URL valide.", "Erreur")
             return
         try:
             result = subprocess.run(["yt-dlp", "-j", url], capture_output=True, text=True, check=True)
@@ -169,8 +191,10 @@ class App(ctk.CTk):
                 img = Image.open(BytesIO(response.content)).resize((160, 90))
                 ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=(160, 90))
                 self.image_preview.configure(image=ctk_img, text="")
+            self.notif_popup(f"Prévisualisation OK : {titre}", "Succès")
         except Exception as e:
             self.afficher_logs(f"Erreur prévisualisation : {e}")
+            self.notif_popup(f"Erreur prévisualisation : {e}", "Erreur")
 
     def nettoyer_nom(self, titre):
         import re
@@ -186,9 +210,10 @@ class App(ctk.CTk):
         format_audio = self.format_audio.get()
         self.telecharger(urls, mode="audio", format_audio=format_audio)
 
+    # --- Progression détaillée ---
     def telecharger(self, urls, mode, qualite="best", format_audio="mp3"):
         def thread_func():
-            self.progress_bar.set(0.1)
+            self.progress_bar.set(0)
             for url in urls:
                 try:
                     commande = ["yt-dlp", url, "--ffmpeg-location", r"C:\\ProgramData\\chocolatey\\lib\\ffmpeg\\tools\\ffmpeg\\bin"]
@@ -200,15 +225,86 @@ class App(ctk.CTk):
 
                     commande += ["-P", self.dossier_telechargement, "--restrict-filenames"]
                     commande += ["--output", f"%(title).80s.%(ext)s"]
+                    commande += ["--no-playlist", "--progress"]
 
                     self.afficher_logs(f"Téléchargement : {url}")
-                    subprocess.run(commande, check=True)
-                    self.afficher_logs("✔️ Terminé")
-                except subprocess.CalledProcessError as e:
+
+                    # Progression réelle en lisant stdout
+                    process = subprocess.Popen(commande, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                    total_percent = 0.0
+                    taille_mo = 0.0
+                    while True:
+                        line = process.stdout.readline()
+                        if not line:
+                            break
+                        self.afficher_logs(line.strip())
+                        # yt-dlp output: [download]   5.7% of 7.21MiB at 1.00MiB/s ETA 00:20
+                        if "[download]" in line and "%" in line:
+                            try:
+                                parts = line.split()
+                                percent = float(parts[1].replace('%', '').replace('.', '').replace(',', '.'))
+                                total_percent = percent
+                                taille_str = [p for p in parts if "MiB" in p]
+                                if taille_str:
+                                    taille_mo = float(taille_str[0].replace('MiB', '').replace(',', '.'))
+                                self.progress_bar.set(total_percent/100)
+                            except Exception:
+                                pass
+                    process.wait()
+                    if process.returncode == 0:
+                        self.afficher_logs("✔️ Terminé")
+                        self.notif_popup("Téléchargement terminé !", "Succès")
+                    else:
+                        self.afficher_logs("❌ Erreur lors du téléchargement")
+                        self.notif_popup("Erreur lors du téléchargement", "Erreur")
+                except Exception as e:
                     self.afficher_logs(f"❌ Erreur : {e}")
+                    self.notif_popup(f"Erreur : {e}", "Erreur")
             self.progress_bar.set(1.0)
 
         threading.Thread(target=thread_func, daemon=True).start()
+
+    # --- Éditeur de thème graphique ---
+    def ouvrir_editeur_theme(self):
+        top = ctk.CTkToplevel(self)
+        top.title("Éditeur de thème")
+        top.geometry("350x420")
+        labels = [
+            ("Nom du thème", "theme_name"),
+            ("bg_color", "bg_color"),
+            ("fg_color", "fg_color"),
+            ("button_color", "button_color"),
+            ("text_color", "text_color"),
+            ("border_color", "border_color"),
+            ("hover_color", "hover_color"),
+        ]
+        entries = {}
+        for idx, (lbl, key) in enumerate(labels):
+            lab = ctk.CTkLabel(top, text=lbl)
+            lab.pack()
+            ent = ctk.CTkEntry(top, placeholder_text=f"{lbl} (#RRGGBB ou nom)")
+            ent.pack(pady=2)
+            entries[key] = ent
+
+        def preview_theme():
+            theme = {k: v.get() for k, v in entries.items() if k != "theme_name"}
+            self.apply_theme(theme)
+
+        def save_theme():
+            theme_name = entries["theme_name"].get()
+            if not theme_name:
+                self.notif_popup("Nom du thème manquant", "Erreur")
+                return
+            theme = {k: v.get() for k, v in entries.items() if k != "theme_name"}
+            save_theme_to_file(theme_name, theme)
+            self.notif_popup(f"Thème '{theme_name}' sauvegardé !", "Succès")
+            if theme_name not in self.theme_list:
+                self.theme_list.append(theme_name)
+
+        btn_preview = ctk.CTkButton(top, text="Prévisualiser", command=preview_theme)
+        btn_preview.pack(pady=5)
+        btn_save = ctk.CTkButton(top, text="Sauvegarder", command=save_theme)
+        btn_save.pack(pady=5)
 
 if __name__ == '__main__':
     app = App()

@@ -38,5 +38,13 @@
     "text_color": "#5B21B6",
     "border_color": "#A78BFA",
     "hover_color": "#D1C4E9"
+  },
+  "hi": {
+    "bg_color": "#f7da79",
+    "fg_color": "#f0b907",
+    "button_color": "#a88e36",
+    "text_color": "#f0ede4",
+    "border_color": "#b8941d",
+    "hover_color": "#b8941d"
   }
 }
