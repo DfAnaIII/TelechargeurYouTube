@@ -68,9 +68,11 @@ class App(ctk.CTk):
         self.logs = ctk.CTkTextbox(self, height=100)
         self.logs.pack(padx=20, pady=(5, 10), fill="x")
 
-        self.combo_theme = ctk.CTkComboBox(self, values=["dark-blue", "light", "green"], command=self.changer_theme)
-        self.combo_theme.set("dark-blue")
-        self.combo_theme.pack(pady=5)
+        self.btn_theme = ctk.CTkButton(self, text="Changer de thème", command=self.changer_theme)
+        self.btn_theme.pack(pady=5)
+        self.theme_list = ["dark-blue", "light", "green"]
+        self.current_theme_idx = 0
+        self.btn_theme.configure(text=f"Thème : {self.theme_list[self.current_theme_idx]}")
 
         # Appliquer le thème de base
         self.apply_theme(load_theme("dark-blue"))
@@ -79,12 +81,15 @@ class App(ctk.CTk):
         theme_mode = "Dark" if self.switch_theme.get() else "Light"
         ctk.set_appearance_mode(theme_mode)
 
-    def changer_theme(self, theme_name):
+    def changer_theme(self):
+        self.current_theme_idx = (self.current_theme_idx + 1) % len(self.theme_list)
+        theme_name = self.theme_list[self.current_theme_idx]
         theme = load_theme(theme_name)
         self.apply_theme(theme)
+        self.btn_theme.configure(text=f"Thème : {theme_name}")
 
     def apply_theme(self, theme):
-        self.configure(bg_color=theme["bg_color"])
+        self.configure(fg_color=theme["bg_color"])
         self.label_url.configure(bg_color=theme["bg_color"], text_color=theme["text_color"])
         self.text_urls.configure(bg_color=theme["fg_color"], text_color=theme["text_color"])
         self.btn_previsualiser.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
@@ -98,7 +103,7 @@ class App(ctk.CTk):
         self.btn_audio.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
         self.progress_bar.configure(bg_color=theme["fg_color"])
         self.logs.configure(bg_color=theme["fg_color"], text_color=theme["text_color"])
-        self.combo_theme.configure(bg_color=theme["fg_color"], text_color=theme["text_color"])
+        self.btn_theme.configure(fg_color=theme["button_color"], text_color=theme["text_color"])
 
     def choisir_dossier(self):
         dossier = filedialog.askdirectory()
