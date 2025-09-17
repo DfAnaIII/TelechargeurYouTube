@@ -71,6 +71,14 @@ class App(ctk.CTk):
         menubar = tk.Menu(self)
 
         theme_menu = tk.Menu(menubar, tearoff=0)
+
+        # Ajout dynamique des thèmes
+        for theme_name in get_all_themes():
+            theme_menu.add_command(
+                label=theme_name,
+                command=lambda tn=theme_name: self.change_theme(tn)
+            )
+        theme_menu.add_separator()
         theme_menu.add_command(label="Éditeur de thème", command=self.ouvrir_editeur_theme)
         menubar.add_cascade(label="Thème", menu=theme_menu)
 
@@ -108,8 +116,6 @@ class App(ctk.CTk):
         self.progress_bar = ctk.CTkProgressBar(self)
         self.progress_bar.set(0)
         self.progress_bar.pack(pady=10, fill="x", padx=20)
-        self.progress_label = ctk.CTkLabel(self, text="Progression : 0%")
-        self.progress_label.pack()
         self.logs = ctk.CTkTextbox(self, height=100)
         self.logs.pack(padx=20, pady=(5, 10), fill="x")
         self.theme_list = get_all_themes()
@@ -191,7 +197,6 @@ class App(ctk.CTk):
             bg_color=theme["fg_color"],
             border_color=theme.get("border_color", theme["button_color"])
         )
-        self.progress_label.configure(bg_color=theme["bg_color"], text_color=theme["text_color"])
         self.image_preview.configure(bg_color=theme["bg_color"])
 
     def choisir_dossier(self):
@@ -243,7 +248,6 @@ class App(ctk.CTk):
     def telecharger(self, urls, mode, qualite="best", format_audio="mp3"):
         def thread_func():
             self.progress_bar.set(0)
-            self.progress_label.configure(text="Progression : 0%")
             for url in urls:
                 try:
                     commande = ["yt-dlp", url, "--ffmpeg-location", "/usr/local/bin/ffmpeg"]
@@ -273,7 +277,6 @@ class App(ctk.CTk):
                                 if taille_str:
                                     taille_mo = float(taille_str[0].replace('MiB', '').replace(',', '.'))
                                 self.progress_bar.set(total_percent/100)
-                                self.progress_label.configure(text=f"Progression : {total_percent:.1f}%   Taille : {taille_mo:.2f} Mo")
                             except Exception:
                                 pass
                     process.wait()
@@ -287,8 +290,6 @@ class App(ctk.CTk):
                     self.afficher_logs(f"❌ Erreur : {e}")
                     self.notif_popup(f"Erreur : {e}", "Erreur")
             self.progress_bar.set(1.0)
-            self.progress_label.configure(text="Progression : 100%")
-
         threading.Thread(target=thread_func, daemon=True).start()
 
     def ouvrir_editeur_theme(self):
