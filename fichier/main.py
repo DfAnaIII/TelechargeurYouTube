@@ -7,9 +7,7 @@ from PIL import Image
 from io import BytesIO
 import json
 import os
-
-# Pour convertire un .py en .exe
-#  auto-py-to-exe
+import tkinter as tk  # Pour la barre de menu
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("dark-blue")
@@ -28,7 +26,6 @@ def load_last_theme():
 
 def load_theme(theme_name):
     if not os.path.exists("themes.json"):
-        # Fichier absent : crée un thème par défaut
         with open("themes.json", "w") as f:
             json.dump({"dark-blue": {
                 "bg_color": "#222E3C",
@@ -43,7 +40,6 @@ def load_theme(theme_name):
     return themes.get(theme_name, themes["dark-blue"])
 
 def save_theme_to_file(theme_name, theme_dict):
-    # Corrigé : robustesse création/écrasement du fichier
     if not os.path.exists("themes.json"):
         with open("themes.json", "w") as f:
             json.dump({theme_name: theme_dict}, f, indent=2)
@@ -71,51 +67,51 @@ class App(ctk.CTk):
         self.title("Téléchargeur YouTube ✨")
         self.geometry("1000x1750")
 
-        self.dossier_telechargement = os.getcwd()
+        # ----- Barre de menu -----
+        menubar = tk.Menu(self)
 
-        # Widgets principaux
+        theme_menu = tk.Menu(menubar, tearoff=0)
+        theme_menu.add_command(label="Éditeur de thème", command=self.ouvrir_editeur_theme)
+        menubar.add_cascade(label="Thème", menu=theme_menu)
+
+        help_menu = tk.Menu(menubar, tearoff=0)
+        help_menu.add_command(label="À propos", command=self.afficher_a_propos)
+        menubar.add_cascade(label="Aide", menu=help_menu)
+
+        self.config(menu=menubar)
+
+        self.dossier_telechargement = os.getcwd()
         self.label_url = ctk.CTkLabel(self, text="Entrez une ou plusieurs URLs (une par ligne) :")
         self.label_url.pack(pady=(10, 0))
-
         self.text_urls = ctk.CTkTextbox(self, height=100)
         self.text_urls.pack(padx=20, pady=(5, 10), fill="x")
-
         self.btn_previsualiser = ctk.CTkButton(self, text="Prévisualiser", command=self.previsualiser)
         self.btn_previsualiser.pack(pady=(0, 10))
-
         self.label_titre = ctk.CTkLabel(self, text="")
         self.label_titre.pack()
-
         self.image_preview = ctk.CTkLabel(self, text="")
         self.image_preview.pack(pady=5)
-
         self.label_options = ctk.CTkLabel(self, text="Options de téléchargement :")
         self.label_options.pack(pady=(10, 0))
-
         self.choix_qualite = ctk.CTkComboBox(self, values=["best", "1080p", "720p", "480p", "audio"], width=120)
         self.choix_qualite.set("best")
         self.choix_qualite.pack(pady=5)
-
         self.format_audio = ctk.CTkComboBox(self, values=["mp3", "aac", "ogg", "wav", "opus"], width=120)
         self.format_audio.set("mp3")
         self.format_audio.pack(pady=5)
-
         self.btn_dossier = ctk.CTkButton(self, text="📂 Choisir dossier de téléchargement", command=self.choisir_dossier)
         self.btn_dossier.pack(pady=5)
-
         self.btn_video = ctk.CTkButton(self, text="Télécharger Vidéo", command=self.telecharger_video)
         self.btn_video.pack(pady=5)
-
         self.btn_audio = ctk.CTkButton(self, text="Télécharger Audio", command=self.telecharger_audio)
         self.btn_audio.pack(pady=5)
-
         self.progress_bar = ctk.CTkProgressBar(self)
         self.progress_bar.set(0)
         self.progress_bar.pack(pady=10, fill="x", padx=20)
-
+        self.progress_label = ctk.CTkLabel(self, text="Progression : 0%")
+        self.progress_label.pack()
         self.logs = ctk.CTkTextbox(self, height=100)
         self.logs.pack(padx=20, pady=(5, 10), fill="x")
-
         self.theme_list = get_all_themes()
         self.current_theme = load_last_theme()
         if self.current_theme in self.theme_list:
@@ -123,15 +119,24 @@ class App(ctk.CTk):
         else:
             self.current_theme_idx = 0
             self.current_theme = self.theme_list[0]
-
         self.btn_theme = ctk.CTkButton(self, text=f"Thème : {self.current_theme}", command=self.changer_theme)
         self.btn_theme.pack(pady=5)
-
         self.btn_theme_editor = ctk.CTkButton(self, text="Éditeur de thème", command=self.ouvrir_editeur_theme)
         self.btn_theme_editor.pack(pady=5)
-
         self.apply_theme(load_theme(self.current_theme))
         self.btn_theme.configure(text=f"Thème : {self.current_theme}")
+
+    # --- Barre de menu : actions ---
+    def menu_ouvrir(self):
+        file = filedialog.askopenfilename(title="Ouvrir un fichier", filetypes=[("JSON", "*.json"), ("Tout", "*.*")])
+        if file:
+            self.notif_popup(f"Fichier ouvert :\n{file}", "Info")
+
+    def menu_quitter(self):
+        self.destroy()
+
+    def afficher_a_propos(self):
+        self.notif_popup("Téléchargeur YouTube\nVersion 1.0\npar DfAnaIII", "À propos")
 
     # --- Notifications pop-up ---
     def notif_popup(self, message, title="Notification"):
@@ -186,6 +191,7 @@ class App(ctk.CTk):
             bg_color=theme["fg_color"],
             border_color=theme.get("border_color", theme["button_color"])
         )
+        self.progress_label.configure(bg_color=theme["bg_color"], text_color=theme["text_color"])
         self.image_preview.configure(bg_color=theme["bg_color"])
 
     def choisir_dossier(self):
@@ -237,9 +243,10 @@ class App(ctk.CTk):
     def telecharger(self, urls, mode, qualite="best", format_audio="mp3"):
         def thread_func():
             self.progress_bar.set(0)
+            self.progress_label.configure(text="Progression : 0%")
             for url in urls:
                 try:
-                    commande = ["yt-dlp", url, "--ffmpeg-location", r"C:\\ProgramData\\chocolatey\\lib\\ffmpeg\\tools\\ffmpeg\\bin"]
+                    commande = ["yt-dlp", url, "--ffmpeg-location", "/usr/local/bin/ffmpeg"]
                     if mode == "video":
                         if qualite != "best":
                             commande += ["-f", f"bestvideo[height<={qualite}]+bestaudio"]
@@ -257,7 +264,6 @@ class App(ctk.CTk):
                         if not line:
                             break
                         self.afficher_logs(line.strip())
-                        # yt-dlp output: [download]   5.7% of 7.21MiB at 1.00MiB/s ETA 00:20
                         if "[download]" in line and "%" in line:
                             try:
                                 parts = line.split()
@@ -267,6 +273,7 @@ class App(ctk.CTk):
                                 if taille_str:
                                     taille_mo = float(taille_str[0].replace('MiB', '').replace(',', '.'))
                                 self.progress_bar.set(total_percent/100)
+                                self.progress_label.configure(text=f"Progression : {total_percent:.1f}%   Taille : {taille_mo:.2f} Mo")
                             except Exception:
                                 pass
                     process.wait()
@@ -280,6 +287,8 @@ class App(ctk.CTk):
                     self.afficher_logs(f"❌ Erreur : {e}")
                     self.notif_popup(f"Erreur : {e}", "Erreur")
             self.progress_bar.set(1.0)
+            self.progress_label.configure(text="Progression : 100%")
+
         threading.Thread(target=thread_func, daemon=True).start()
 
     def ouvrir_editeur_theme(self):
@@ -315,7 +324,6 @@ class App(ctk.CTk):
             theme = {k: v.get().strip() for k, v in entries.items() if k != "theme_name"}
             save_theme_to_file(theme_name, theme)
             self.notif_popup(f"Thème '{theme_name}' sauvegardé !", "Succès")
-            # Recharge la liste de thèmes depuis le fichier
             self.theme_list = get_all_themes()
             self.current_theme_idx = self.theme_list.index(theme_name)
             self.change_theme(theme_name)
