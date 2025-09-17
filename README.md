@@ -1,60 +1,62 @@
-# TelechargeurYouTube ✨
+# Telechargeur YouTube ✨
 
-Un téléchargeur YouTube moderne avec interface graphique et web, développé en Python. Ce projet permet de télécharger facilement des vidéos et de l'audio depuis YouTube avec plusieurs options de qualité et formats.
+Un téléchargeur YouTube moderne avec interface graphique, développé en Python. Ce projet permet de télécharger facilement des vidéos et de l'audio depuis YouTube avec plusieurs options avancées.
 
-## 🚀 Fonctionnalités
+---
+
+## 🚀 Fonctionnalités principales
 
 ### Interface Graphique (Desktop)
-- **Interface moderne** avec CustomTkinter
-- **Mode sombre/clair** commutable
-- **Prévisualisation** des vidéos avant téléchargement
-- **Téléchargement multiple** (plusieurs URLs à la fois)
-- **Choix de qualité** : best, 1080p, 720p, 480p, audio uniquement
-- **Formats audio** : MP3, AAC, OGG, WAV, OPUS
-- **Sélection du dossier** de téléchargement
-- **Barre de progression** et logs en temps réel
+- Interface moderne avec CustomTkinter
+- Mode sombre/clair commutable
+- **Barre de menu dynamique** : sélection de tous les thèmes existants via le menu "Thème"
+- Prévisualisation des vidéos avant téléchargement
+- Téléchargement multiple (plusieurs URLs à la fois)
+- Choix de qualité : best, 1080p, 720p, 480p, audio uniquement
+- Formats audio : MP3, AAC, OGG, WAV, OPUS
+- Sélection du dossier de téléchargement
+- Barre de progression et logs en temps réel
+- Personnalisation des thèmes via l’éditeur intégré
 
-### Interface Web
-- **Interface web simple** avec Flask
-- **Téléchargement direct** via navigateur
-- **Support MP3 et MP4**
-- **Génération automatique** de noms de fichiers
+---
 
 ## 📋 Prérequis
 
 - Python 3.7+
 - FFmpeg (pour la conversion audio)
+- yt-dlp, PIL/Pillow, requests, customtkinter, flask
+
+---
 
 ## 🛠️ Installation
 
 1. **Clonez le repository :**
-```bash
-git clone https://github.com/DfAnaIII/TelechargeurYouTube.git
-cd TelechargeurYouTube
-```
+   ```bash
+   git clone https://github.com/DfAnaIII/TelechargeurYouTube.git
+   cd TelechargeurYouTube
+   ```
 
 2. **Installez les dépendances :**
-```bash
-pip install -r requirements.txt
-```
+   ```bash
+   pip install -r fichier/requirements.txt
+   ```
 
 3. **Installez FFmpeg :**
    - **Windows :** Téléchargez depuis [ffmpeg.org](https://ffmpeg.org/download.html)
    - **macOS :** `brew install ffmpeg`
    - **Linux :** `sudo apt install ffmpeg`
 
+---
+
 ## 🚀 Utilisation
 
 ### Interface Graphique
+
 ```bash
 python fichier/main.py
 ```
 
-### Interface Web
-```bash
-python fichier/app.py
-```
-Puis ouvrez http://localhost:5000 dans votre navigateur.
+---
 
 ## 📁 Structure du Projet
 
@@ -62,36 +64,46 @@ Puis ouvrez http://localhost:5000 dans votre navigateur.
 TelechargeurYouTube/
 ├── fichier/
 │   ├── main.py               # Interface graphique principale
-│   ├── app.py                # Application web Flask
-│   └── main.html             # Templates HTML
-│   └──requirement.txt        # Plugins Python  
-├── TelechargeurYoutube.exe   # Dossier de téléchargements
-└── README.md                 # Ce fichier
+│   ├── main.html             # Template HTML
+│   └── requirements.txt      # Dépendances Python  
+├── themes.json               # Thèmes personnalisés
+├── last_theme.json           # Dernier thème utilisé
+├── README.md                 # Ce fichier
 ```
+
+---
+
+## 🎨 Barre de menu et gestion des thèmes
+
+- La barre de menu propose :
+  - **Thème** : tous les thèmes présents dans `themes.json` sont listés et sélectionnables dynamiquement
+  - **Aide** (À propos)
+- Un éditeur graphique permet de créer et sauvegarder vos propres thèmes.
+- Le thème sélectionné est mémorisé pour la prochaine ouverture.
+
+---
 
 ## 🎮 Utilisation de l'Interface Graphique
 
-1. **Entrez l'URL** YouTube dans le champ de texte
-2. **Cliquez sur "Prévisualiser"** pour voir les détails de la vidéo
-3. **Choisissez la qualité** et le format souhaités
-4. **Sélectionnez le dossier** de destination (optionnel)
-5. **Cliquez sur "Télécharger Vidéo"** ou **"Télécharger Audio"**
+1. Entrez l'URL YouTube dans le champ de texte
+2. Cliquez sur "Prévisualiser" pour voir les détails de la vidéo
+3. Choisissez la qualité et le format souhaités
+4. Sélectionnez le dossier de destination (optionnel)
+5. Cliquez sur "Télécharger Vidéo" ou "Télécharger Audio"
+6. Changez le thème via la barre de menu ou le bouton
 
-## 🌐 Utilisation de l'Interface Web
-
-1. Accédez à http://localhost:5000
-2. Collez l'URL YouTube
-3. Choisissez le format (MP3 ou MP4)
-4. Cliquez sur télécharger
+---
 
 ## 🔧 Technologies Utilisées
 
-- **Python 3.x** - Langage principal
-- **CustomTkinter** - Interface graphique moderne
-- **Flask** - Framework web
-- **yt-dlp** - Téléchargement YouTube
-- **PIL/Pillow** - Traitement d'images
-- **requests** - Requêtes HTTP
+- Python 3.x
+- CustomTkinter
+- Flask
+- yt-dlp
+- PIL/Pillow
+- requests
+
+---
 
 ## 📝 Configuration
 
@@ -109,23 +121,30 @@ TelechargeurYouTube/
 - 480p
 - Audio uniquement
 
+---
+
 ## 🤝 Contribution
 
-Les contributions sont les bienvenues ! N'hésitez pas à :
-
+Les contributions sont les bienvenues !
 1. Fork le projet
-2. Créer une branche pour votre fonctionnalité
-3. Commiter vos changements
-4. Pousser vers la branche
-5. Ouvrir une Pull Request
+2. Créez une branche pour votre fonctionnalité
+3. Commitez vos changements
+4. Poussez vers la branche
+5. Ouvrez une Pull Request
+
+---
 
 ## 📄 Licence
 
 Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 
+---
+
 ## ⚠️ Avertissement
 
 Assurez-vous de respecter les conditions d'utilisation de YouTube et les lois sur le copyright de votre pays lors de l'utilisation de cet outil.
+
+---
 
 ## 🆘 Support
 
