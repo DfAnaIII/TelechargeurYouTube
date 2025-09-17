@@ -1,32 +1,33 @@
-import customtkinter as ctk
 import tkinter.filedialog as filedialog
+import customtkinter as ctk
+import tkinter as tk
 import subprocess
+import webbrowser
 import threading
 import requests
-from PIL import Image
-from io import BytesIO
 import json
 import os
-import tkinter as tk  # Pour la barre de menu
+from PIL import Image, ImageTk
+from io import BytesIO
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("dark-blue")
 
 def save_last_theme(theme_name):
-    with open("last_theme.json", "w") as f:
+    with open("../last_theme.json", "w") as f:
         json.dump({"last_theme": theme_name}, f)
 
 def load_last_theme():
     try:
-        with open("last_theme.json", "r") as f:
+        with open("../last_theme.json", "r") as f:
             data = json.load(f)
             return data.get("last_theme", "dark-blue")
     except Exception:
         return "dark-blue"
 
 def load_theme(theme_name):
-    if not os.path.exists("themes.json"):
-        with open("themes.json", "w") as f:
+    if not os.path.exists("../themes.json"):
+        with open("../themes.json", "w") as f:
             json.dump({"dark-blue": {
                 "bg_color": "#222E3C",
                 "fg_color": "#3D4A5A",
@@ -35,34 +36,42 @@ def load_theme(theme_name):
                 "border_color": "#1A2332",
                 "hover_color": "#294157"
             }}, f, indent=2)
-    with open("themes.json", "r") as f:
+    with open("../themes.json", "r") as f:
         themes = json.load(f)
     return themes.get(theme_name, themes["dark-blue"])
 
 def save_theme_to_file(theme_name, theme_dict):
-    if not os.path.exists("themes.json"):
-        with open("themes.json", "w") as f:
+    if not os.path.exists("../themes.json"):
+        with open("../themes.json", "w") as f:
             json.dump({theme_name: theme_dict}, f, indent=2)
     else:
-        with open("themes.json", "r") as f:
+        with open("../themes.json", "r") as f:
             try:
                 themes = json.load(f)
             except Exception:
                 themes = {}
         themes[theme_name] = theme_dict
-        with open("themes.json", "w") as f:
+        with open("../themes.json", "w") as f:
             json.dump(themes, f, indent=2)
 
 def get_all_themes():
-    if not os.path.exists("themes.json"):
+    if not os.path.exists("../themes.json"):
         return ["dark-blue"]
-    with open("themes.json", "r") as f:
+    with open("../themes.json", "r") as f:
         themes = json.load(f)
     return list(themes.keys())
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
+
+
+        icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
+        try:
+            img = tk.PhotoImage(file=icon_path)
+            self.iconphoto(True, img)
+        except Exception as e:
+            print("Erreur chargement icône :", e)
 
         self.title("Téléchargeur YouTube ✨")
         self.geometry("1000x1750")
@@ -83,6 +92,10 @@ class App(ctk.CTk):
         menubar.add_cascade(label="Thème", menu=theme_menu)
 
         help_menu = tk.Menu(menubar, tearoff=0)
+        help_menu.add_command(
+            label="Site du projet",
+            command=lambda: webbrowser.open("https://github.com/DfAnaIII/TelechargeurYouTube")
+        )
         help_menu.add_command(label="À propos", command=self.afficher_a_propos)
         menubar.add_cascade(label="Aide", menu=help_menu)
 
@@ -142,7 +155,7 @@ class App(ctk.CTk):
         self.destroy()
 
     def afficher_a_propos(self):
-        self.notif_popup("Téléchargeur YouTube\nVersion 1.0\npar DfAnaIII", "À propos")
+        self.notif_popup("Téléchargeur YouTube\nVersion 2.0\npar DfAnaIII", "À propos")
 
     # --- Notifications pop-up ---
     def notif_popup(self, message, title="Notification"):
